@@ -1,60 +1,47 @@
 <?php
 // backend/registrar_cargo.php
-require_once('db_connect.php'); 
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action'])) {
-    
-    $action = $_POST['action'];
-    $response = "";
-    
-    // --- LÓGICA PARA REGISTRAR CARGO/PREGUNTA (Parte A) ---
-    if ($action == 'cargo' && isset($_POST['titulo'])) {
-        $titulo = $conn->real_escape_string($_POST['titulo']);
-        $descripcion = $conn->real_escape_string($_POST['descripcion'] ?? '');
-        
-        $sql = "INSERT INTO Cargos_Preguntas (titulo, descripcion) 
-                VALUES ('$titulo', '$descripcion')";
-        
-        if ($conn->query($sql) === TRUE) {
-            // REDIRECCIÓN EN CASO DE ÉXITO (Solución UX)
-            $msg = urlencode("Cargo '{$titulo}' registrado exitosamente. Ahora regístrele opciones.");
-            header("Location: ../formularios/registro_cargos.php?msg=" . $msg);
-            exit(); 
-        } else {
-            $response = "Error al registrar Cargo/Pregunta: " . $conn->error;
-        }
-    } 
-    
-    // --- LÓGICA PARA REGISTRAR OPCIÓN/ASPIRANTE (Parte B) ---
-    elseif ($action == 'opcion' && isset($_POST['nombre_opcion']) && isset($_POST['id_cargo_pregunta'])) {
-        $nombre_opcion = $conn->real_escape_string($_POST['nombre_opcion']);
-        $id_cargo = (int)$_POST['id_cargo_pregunta'];
-        
-        // Esta es la línea 33 que ahora funciona gracias al fix de la BD:
-        $sql = "INSERT INTO Aspirantes_Opciones (id_cargo_pregunta, nombre_opcion) 
-                VALUES ($id_cargo, '$nombre_opcion')";
-        
-        if ($conn->query($sql) === TRUE) {
-            // REDIRECCIÓN EN CASO DE ÉXITO
-            $msg = urlencode("Opción '{$nombre_opcion}' registrada exitosamente.");
-            header("Location: ../formularios/registro_cargos.php?msg=" . $msg); 
-            exit();
-        } else {
-            $response = "Error al registrar Opción/Aspirante: " . $conn->error; 
-        }
-    } else {
-        $response = "Solicitud inválida o faltan datos.";
-    }
+// 1. CORRECCIÓN DE RUTA: Subimos un nivel para encontrar db_connect.php en la raíz
+require_once('../db_connect.php');
 
-    // Muestra el mensaje de error si no se pudo redireccionar
-    if (isset($response)) {
-        echo "<h2>Error de Procesamiento</h2>";
-        echo $response;
-        echo "<p>Regresar al <a href='../index.html'>Panel de Administración</a></p>";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'cargo') {
+        // --- REGISTRAR SOLO EL CARGO ---
+        $titulo = $_POST['titulo'] ?? '';
+        $descripcion = $_POST['descripcion'] ?? '';
+
+        if (!empty($titulo)) {
+            // En PostgreSQL usamos $1, $2 para evitar inyecciones SQL con pg_query_params
+            $sql = "INSERT INTO cargos_preguntas (titulo, descripcion) VALUES ($1, $2)";
+            $stmt = pg_query_params($conn, $sql, array($titulo, $descripcion));
+
+            if ($stmt) {
+                header("Location: ../formularios/registro_cargos.php?msg=Cargo registrado exitosamente");
+            } else {
+                echo "Error al registrar el cargo: " . pg_last_error($conn);
+            }
+        }
+
+    } elseif ($action === 'opcion') {
+        // --- REGISTRAR CANDIDATO / OPCIÓN ---
+        $id_cargo_pregunta = $_POST['id_cargo_pregunta'] ?? '';
+        $nombre_opcion = $_POST['nombre_opcion'] ?? '';
+
+        if (!empty($id_cargo_pregunta) && !empty($nombre_opcion)) {
+            $sql = "INSERT INTO aspirantes_opciones (id_cargo_pregunta, nombre_opcion) VALUES ($1, $2)";
+            $stmt = pg_query_params($conn, $sql, array($id_cargo_pregunta, $nombre_opcion));
+
+            if ($stmt) {
+                header("Location: ../formularios/registro_cargos.php?msg=Candidato/Opción guardada correctamente");
+            } else {
+                echo "Error al registrar la opción: " . pg_last_error($conn);
+            }
+        }
     }
-} else {
-    echo "Acceso no permitido. Usa el formulario de registro.";
 }
 
-$conn->close();
+// Cerramos la conexión
+pg_close($conn);
 ?>
