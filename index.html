@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Encuestas Corporativo</title>
+    <link rel="stylesheet" href="css/style.css"> 
+</head>
+<body>
+
+    <header>
+        <h1>Sistema de Encuestas Corporativo</h1>
+        <p>Plataforma profesional para la gestión integral de encuestas y procesos de votación</p>
+    </header>
+
+    <main>
+        
+        <div class="panel-administracion">
+            <h2>Panel de Administración</h2>
+            <div class="cards-container">
+                
+                <div class="card">
+                    <div class="icon">👤</div> 
+                    <h3>Registrar Participantes</h3>
+                    <p>Gestiona el registro de participantes que recibirán acceso al sistema de votación.</p>
+                    <a href="formularios/registro_participante.html">Ir a Registro</a>
+                </div>
+
+                <div class="card">
+                    <div class="icon">📋</div> 
+                    <h3>Configurar Cargos</h3>
+                    <p>Configure preguntas de la encuesta y defina las opciones de respuesta disponibles.</p>
+                    <a href="formularios/registro_cargos.php">Configurar</a>
+                </div>
+
+                <div class="card">
+                    <div class="icon">📧</div> 
+                    <h3>Generar Enlaces</h3>
+                    <p>Genera enlaces de acceso y administra participantes del sistema.</p>
+                    <a href="backend/enviar_emails.php">Enviar Encuesta Ahora</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="consulta-resultados">
+            <h2>Consulta de Resultados</h2>
+            <div class="cards-container">
+                <div class="card">
+                    <div class="icon">📈</div> 
+                    <h3>Visualizar Resultados</h3>
+                    <p>Acceda a los resultados en tiempo real de las encuestas activas.</p>
+                    <a href="formularios/reporte.php">Ver Resultados</a>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    
+    <footer>
+        <p>Proyecto Final de Programación Web</p>
+    </footer>
+
+</body>
+</html>

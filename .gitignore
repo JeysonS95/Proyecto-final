@@ -1,0 +1,8 @@
+# Ignorar archivos de configuración sensibles
+backend/db_connect.php 
+
+# Ignorar archivos de IDEs, macOS, Windows, etc.
+.vscode/
+.DS_Store
+Thumbs.db
+vendor/
