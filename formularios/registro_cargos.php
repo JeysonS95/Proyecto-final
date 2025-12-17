@@ -1,16 +1,17 @@
 <?php
 // Formularios/registro_cargos.php
-// Conexión para obtener los cargos para el desplegable.
-require_once('../backend/db_connect.php'); 
 
-// 1. Consulta para obtener los cargos dinámicamente
-$sql_cargos = "SELECT id, titulo FROM Cargos_Preguntas ORDER BY id ASC";
-$resultado_cargos = $conn->query($sql_cargos);
+// 1. CORRECCIÓN DE RUTA: El archivo db_connect.php ahora está en la raíz, un nivel arriba.
+require_once('../db_connect.php'); 
 
-// 2. Cerramos la conexión después de usarla
-$conn->close();
+// 2. ADAPTACIÓN A POSTGRESQL: Cambiamos las funciones de MySQL por pg_query y pg_fetch_assoc.
+$sql_cargos = "SELECT id, titulo FROM cargos_preguntas ORDER BY id ASC";
+$resultado_cargos = pg_query($conn, $sql_cargos);
 
-// 3. Obtener mensaje de éxito de la URL si existe
+// 3. Cerramos la conexión después de obtener los datos (opcional en scripts cortos)
+// pg_close($conn); 
+
+// 4. Obtener mensaje de éxito de la URL si existe
 $success_message = '';
 if (isset($_GET['msg'])) {
     $success_message = htmlspecialchars($_GET['msg']);
@@ -69,10 +70,9 @@ if (isset($_GET['msg'])) {
                         <option value="">-- Seleccione un Cargo/Pregunta --</option>
                         
                         <?php
-                            // Generar las opciones del desplegable dinámicamente
-                            if ($resultado_cargos && $resultado_cargos->num_rows > 0) {
-                                while($fila = $resultado_cargos->fetch_assoc()) {
-                                    // EL VALOR DEL OPTION ES EL ID REAL DE LA BD
+                            // ADAPTACIÓN A POSTGRESQL: Usamos pg_num_rows y pg_fetch_assoc
+                            if ($resultado_cargos && pg_num_rows($resultado_cargos) > 0) {
+                                while($fila = pg_fetch_assoc($resultado_cargos)) {
                                     echo '<option value="' . $fila["id"] . '">' . htmlspecialchars($fila["titulo"]) . ' (ID: ' . $fila["id"] . ')</option>';
                                 }
                             } else {
