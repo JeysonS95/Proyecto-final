@@ -1,57 +1,50 @@
 <?php
-// backend/enviar_emails.php
-require_once('db_connect.php'); 
+// 1. CORRECCIÓN DE RUTA: Salimos de 'backend/' para buscar 'db_connect.php' en la raíz
+require_once('../db_connect.php'); 
 
-// Función para generar un token único (cadena aleatoria segura)
-function generateToken($length = 32) {
-    // Genera una cadena hexadecimal aleatoria de 32 caracteres
-    return bin2hex(random_bytes($length / 2));
+/**
+ * NOTA: Para enviar correos reales desde Render, 
+ * normalmente necesitarás un servicio como SendGrid, Mailgun o Gmail SMTP.
+ */
+
+// 2. CONSULTA ADAPTADA A POSTGRESQL
+// Seleccionamos a los participantes que aún no han votado
+$sql = "SELECT id, correo, nombre, token FROM participantes WHERE hasvoted = FALSE";
+$result = pg_query($conn, $sql);
+
+if (!$result) {
+    die("Error al consultar participantes: " . pg_last_error($conn));
 }
 
-// 1. Consultar Participantes que aún no han votado (hasVoted = FALSE)
-$sql = "SELECT id, correo FROM Participantes WHERE hasVoted = FALSE";
-$result = $conn->query($sql);
+echo "<h2>Iniciando proceso de envío de correos...</h2>";
 
-$emails_enviados = 0;
-
-echo "<h1>📧 Proceso de Envío de Encuestas</h1>";
-
-if ($result->num_rows > 0) {
-    
-    // 2. Procesar cada participante
-    while($row = $result->fetch_assoc()) {
-        $participante_id = $row['id'];
-        $correo_destino = $row['correo'];
+// 3. RECORRER RESULTADOS CON pg_fetch_assoc
+if (pg_num_rows($result) > 0) {
+    while ($row = pg_fetch_assoc($result)) {
+        $email = $row['correo'];
+        $nombre = $row['nombre'];
+        $token = $row['token'];
         
-        // Generar el Token Único (Requisito b)
-        $token = generateToken();
-        
-        // 3. Actualizar la base de datos con el token
-        // Esto asocia la URL única al registro del participante
-        $update_sql = "UPDATE Participantes SET token = '$token' WHERE id = $participante_id";
-        
-        if ($conn->query($update_sql) === TRUE) {
-            
-            // 4. Construir la URL de votación (Requisito b)
-            // La URL usa el token como identificador seguro
-            $url_encuesta = "http://localhost/plataforma_encuestas/votos/encuesta.php?token=" . $token;
-            
-            // 5. SIMULACIÓN DE ENVÍO (Mostrar la URL)
-            echo "<p>✅ Email simulado enviado a: <strong>$correo_destino</strong>";
-            echo " | URL Única: <a href='$url_encuesta'>$url_encuesta</a></p>";
+        // Construimos el enlace de votación usando tu URL de Render
+        $enlace_votacion = "https://proyecto-final-indg.onrender.com/votos/votar.php?token=" . $token;
 
-            $emails_enviados++;
-            
-        } else {
-            echo "<p style='color:red;'>⚠️ Error al guardar token para $correo_destino: " . $conn->error . "</p>";
-        }
+        // --- Lógica de envío (Simulación o PHPMailer) ---
+        echo "Preparando correo para: " . htmlspecialchars($nombre) . " ($email)...<br>";
+        echo "Enlace: <a href='$enlace_votacion'>Votar aquí</a><br><hr>";
+
+        /* Ejemplo básico con la función mail() de PHP 
+           (Requiere configuración de servidor de correo en el Dockerfile)
+           
+           $asunto = "Invitación a participar en la encuesta";
+           $mensaje = "Hola $nombre, participa usando este enlace: $enlace_votacion";
+           mail($email, $asunto, $mensaje);
+        */
     }
-    echo "<h3>Resumen: $emails_enviados participantes listos para votar.</h3>";
-
+    echo "<h3>Proceso completado.</h3>";
 } else {
-    echo "<h2>ℹ️ No hay participantes pendientes de recibir la encuesta.</h2>";
+    echo "No hay participantes pendientes por votar o la tabla está vacía.";
 }
 
-echo "<p><a href='../index.html'>← Regresar al Panel</a></p>";
-$conn->close();
+// 4. CERRAR CONEXIÓN
+pg_close($conn);
 ?>
