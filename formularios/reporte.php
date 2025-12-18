@@ -1,24 +1,24 @@
 <?php
 // 1. CONEXIÓN A LA BASE DE DATOS
-// Salimos de 'formularios/' para buscar db_connect.php en la raíz
-require_once('../db_connect.php'); 
+require_once('../db_connect.php');
 
-// 2. CONSULTA SQL PARA CONTAR VOTOS
-// Usamos LEFT JOIN para mostrar candidatos aunque tengan 0 votos
+// 2. CONSULTA SQL PARA RESULTADOS
 $sql = "SELECT 
-            c.titulo AS cargo, 
             a.nombre_opcion AS candidato, 
             COUNT(v.id) AS total_votos
-        FROM cargos_preguntas c
-        JOIN aspirantes_opciones a ON c.id = a.id_cargo_pregunta
+        FROM aspirantes_opciones a
         LEFT JOIN votos v ON a.id = v.id_aspirante_opcion
-        GROUP BY c.id, c.titulo, a.id, a.nombre_opcion
-        ORDER BY c.titulo, total_votos DESC";
+        GROUP BY a.id, a.nombre_opcion
+        ORDER BY total_votos DESC";
 
 $result = pg_query($conn, $sql);
 
-if (!$result) {
-    die("Error en la consulta: " . pg_last_error($conn));
+$nombres = [];
+$votos = [];
+
+while ($row = pg_fetch_assoc($result)) {
+    $nombres[] = $row['candidato'];
+    $votos[] = (int)$row['total_votos'];
 }
 ?>
 
@@ -26,50 +26,66 @@ if (!$result) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Votaciones</title>
+    <title>Reporte de Resultados</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        table { width: 80%; margin: 20px auto; border-collapse: collapse; font-family: Arial, sans-serif; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .container { width: 80%; margin: auto; text-align: center; }
+        canvas { max-width: 600px; margin: 20px auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; }
         th { background-color: #4CAF50; color: white; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        .cargo-header { background-color: #e2e2e2; font-weight: bold; }
-        h1 { text-align: center; color: #333; }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>📊 Resultados de la Encuesta</h1>
 
-    <h1>📊 Resultados en Tiempo Real</h1>
+        <canvas id="graficoVotos"></canvas>
 
-    <table>
-        <thead>
+        <table>
             <tr>
-                <th>Candidato / Opción</th>
-                <th>Votos Recibidos</th>
+                <th>Candidato</th>
+                <th>Total Votos</th>
             </tr>
-        </thead>
-        <tbody>
-            <?php 
-            $cargo_actual = "";
-            while ($row = pg_fetch_assoc($result)): 
-                // Si cambiamos de cargo, imprimimos una fila separadora
-                if ($cargo_actual != $row['cargo']):
-                    $cargo_actual = $row['cargo'];
-                    echo "<tr class='cargo-header'><td colspan='2'>" . htmlspecialchars($cargo_actual) . "</td></tr>";
-                endif;
-            ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($row['candidato']); ?></td>
-                    <td><strong><?php echo $row['total_votos']; ?></strong></td>
-                </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
+            <?php for ($i = 0; $i < count($nombres); $i++): ?>
+            <tr>
+                <td><?php echo htmlspecialchars($nombres[$i]); ?></td>
+                <td><?php echo $votos[$i]; ?></td>
+            </tr>
+            <?php endfor; ?>
+        </table>
 
-    <div style="text-align: center; margin-top: 30px;">
-        <a href="../index.html" style="text-decoration: none; background: #333; color: white; padding: 10px 20px; border-radius: 5px;">Volver al Inicio</a>
+        <br>
+        <a href="../index.html" class="btn">Volver al Inicio</a>
     </div>
 
+    <script>
+        // Configuración del Gráfico
+        const ctx = document.getElementById('graficoVotos').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: <?php echo json_encode($nombres); ?>,
+                datasets: [{
+                    label: 'Cantidad de Votos',
+                    data: <?php echo json_encode($votos); ?>,
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(255, 206, 86, 0.7)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
 <?php pg_close($conn); ?>
