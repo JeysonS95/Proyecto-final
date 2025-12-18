@@ -1,46 +1,41 @@
 <?php
-// 1. CONEXIÓN A LA BASE DE DATOS
-// Usamos ../ para salir de 'backend/' y encontrar db_connect.php en la raíz
+// 1. CORRECCIÓN DE RUTA
+// Salimos de la carpeta 'backend' para encontrar el archivo en la raíz
 require_once('../db_connect.php'); 
 
-// 2. VERIFICACIÓN DE ENVÍO DE FORMULARIO
+// 2. PROCESAMIENTO DE DATOS
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
-    // Capturamos los datos enviados por el método POST
-    // Usamos el operador ?? '' para evitar errores si el campo viene vacío
+    // Recogemos los datos del formulario (Asegúrate que los 'name' en tu HTML coincidan)
     $nombre    = $_POST['nombre'] ?? '';
     $apellido  = $_POST['apellido'] ?? '';
     $correo    = $_POST['correo'] ?? '';
     
-    // Generamos un TOKEN único de seguridad para este votante
-    // Esto evita que alguien vote dos veces o que voten sin estar registrados
+    // Generamos un token único para que el usuario pueda votar después
     $token = bin2hex(random_bytes(16));
 
-    // Validamos que los campos esenciales no estén vacíos
+    // Validamos que los campos obligatorios no estén vacíos
     if (!empty($nombre) && !empty($correo)) {
         
-        // 3. CONSULTA SQL PARA POSTGRESQL
-        // Usamos $1, $2, $3, $4 para prevenir Inyección SQL
+        // 3. CONSULTA PARA POSTGRESQL (Usando parámetros $1, $2, etc. por seguridad)
         $sql = "INSERT INTO participantes (nombre, apellido, correo, token, hasvoted) 
                 VALUES ($1, $2, $3, $4, FALSE)";
         
-        // Ejecutamos la consulta con los parámetros
         $params = array($nombre, $apellido, $correo, $token);
         $result = pg_query_params($conn, $sql, $params);
 
         if ($result) {
-            // Si todo sale bien, redirigimos de nuevo al formulario con un mensaje de éxito
-            header("Location: ../formularios/registro_participantes.php?msg=exito");
+            // Si funciona, regresamos al formulario con mensaje de éxito
+            header("Location: ../formularios/registro_participantes.php?msg=Participante registrado correctamente");
             exit();
         } else {
-            // Si hay un error en la base de datos (ej: correo duplicado)
-            echo "Error al registrar en la base de datos: " . pg_last_error($conn);
+            // Si falla (por ejemplo, si el correo ya existe)
+            echo "Error al registrar: " . pg_last_error($conn);
         }
     } else {
-        echo "Error: El nombre y el correo son campos obligatorios.";
+        echo "Error: El nombre y el correo son obligatorios.";
     }
 } else {
-    // Si alguien intenta entrar a este archivo sin enviar el formulario
+    // Si intentan entrar al archivo sin usar el formulario
     header("Location: ../formularios/registro_participantes.php");
     exit();
 }
