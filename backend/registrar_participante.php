@@ -1,41 +1,50 @@
 <?php
-// backend/registrar_participante.php
-// Incluye el archivo de conexión (está en la misma carpeta 'backend')
-require_once('db_connect.php'); 
+// 1. CONEXIÓN A LA BASE DE DATOS
+// Usamos ../ para salir de 'backend/' y encontrar db_connect.php en la raíz
+require_once('../db_connect.php'); 
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+// 2. VERIFICACIÓN DE ENVÍO DE FORMULARIO
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // 1. Recoger y limpiar los datos
-    $correo = $conn->real_escape_string($_POST['correo']);
-    $nombre = $conn->real_escape_string($_POST['nombre']);
-    $apellido = $conn->real_escape_string($_POST['apellido']);
-    $campo1 = $conn->real_escape_string($_POST['campo1'] ?? ''); // Uso del operador null coalesce
-    $campo2 = $conn->real_escape_string($_POST['campo2'] ?? '');
-    $campo3 = $conn->real_escape_string($_POST['campo3'] ?? '');
+    // Capturamos los datos enviados por el método POST
+    // Usamos el operador ?? '' para evitar errores si el campo viene vacío
+    $nombre    = $_POST['nombre'] ?? '';
+    $apellido  = $_POST['apellido'] ?? '';
+    $correo    = $_POST['correo'] ?? '';
+    
+    // Generamos un TOKEN único de seguridad para este votante
+    // Esto evita que alguien vote dos veces o que voten sin estar registrados
+    $token = bin2hex(random_bytes(16));
 
-    // 2. Verificar si el correo ya existe (Validación inicial)
-    $check_sql = "SELECT correo FROM Participantes WHERE correo = '$correo'";
-    $result = $conn->query($check_sql);
+    // Validamos que los campos esenciales no estén vacíos
+    if (!empty($nombre) && !empty($correo)) {
+        
+        // 3. CONSULTA SQL PARA POSTGRESQL
+        // Usamos $1, $2, $3, $4 para prevenir Inyección SQL
+        $sql = "INSERT INTO participantes (nombre, apellido, correo, token, hasvoted) 
+                VALUES ($1, $2, $3, $4, FALSE)";
+        
+        // Ejecutamos la consulta con los parámetros
+        $params = array($nombre, $apellido, $correo, $token);
+        $result = pg_query_params($conn, $sql, $params);
 
-    if ($result->num_rows > 0) {
-        echo "<h2>❌ Error: El correo '$correo' ya está registrado.</h2>";
-    } else {
-        // 3. Insertar el nuevo registro
-        $insert_sql = "INSERT INTO Participantes (correo, nombre, apellido, campo1, campo2, campo3) 
-                       VALUES ('$correo', '$nombre', '$apellido', '$campo1', '$campo2', '$campo3')";
-
-        if ($conn->query($insert_sql) === TRUE) {
-            echo "<h2>✅ Participante registrado exitosamente.</h2>";
+        if ($result) {
+            // Si todo sale bien, redirigimos de nuevo al formulario con un mensaje de éxito
+            header("Location: ../formularios/registro_participantes.php?msg=exito");
+            exit();
         } else {
-            echo "<h2>❌ Error al registrar: " . $conn->error . "</h2>";
+            // Si hay un error en la base de datos (ej: correo duplicado)
+            echo "Error al registrar en la base de datos: " . pg_last_error($conn);
         }
+    } else {
+        echo "Error: El nombre y el correo son campos obligatorios.";
     }
-    
-    echo "<p>Regresar al <a href='../index.html'>Panel de Administración</a></p>";
-
 } else {
-    echo "Acceso no permitido. Usa el formulario de registro.";
+    // Si alguien intenta entrar a este archivo sin enviar el formulario
+    header("Location: ../formularios/registro_participantes.php");
+    exit();
 }
 
-$conn->close();
+// 4. CERRAR CONEXIÓN
+pg_close($conn);
 ?>
