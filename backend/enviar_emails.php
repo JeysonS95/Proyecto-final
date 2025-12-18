@@ -26,8 +26,7 @@ if (pg_num_rows($result) > 0) {
         $token = $row['token'];
         
         // Construimos el enlace de votación usando tu URL de Render
-        $enlace_votacion = "https://proyecto-final-indg.onrender.com/votos/votar.php?token=" . $token;
-
+$enlace_votacion = "https://proyecto-final-indg.onrender.com/votos/encuesta.php?token=" . $token;
         // --- Lógica de envío (Simulación o PHPMailer) ---
         echo "Preparando correo para: " . htmlspecialchars($nombre) . " ($email)...<br>";
         echo "Enlace: <a href='$enlace_votacion'>Votar aquí</a><br><hr>";
