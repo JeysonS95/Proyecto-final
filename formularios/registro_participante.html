@@ -52,6 +52,22 @@
         </form>
         <p><a href="../index.html">← Volver al Panel</a></p>
     </main>
+<script>
+    window.onload = function() {
+        // Analizamos la dirección web para buscar mensajes
+        const urlParams = new URLSearchParams(window.location.search);
+        const msg = urlParams.get('msg');
 
+        if (msg === 'exito') {
+            alert("✅ ¡Registro Exitoso! El participante ha sido guardado correctamente.");
+            // Limpiamos la URL para que no repita la alerta al recargar
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } 
+        else if (msg === 'error_duplicado') {
+            alert("❌ Error: Este correo electrónico ya está registrado en el sistema.");
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    };
+</script>
 </body>
 </html>
