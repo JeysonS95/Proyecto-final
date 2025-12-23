@@ -85,7 +85,7 @@ if (isset($_GET['msg'])) {
 
                 <div>
                     <label for="nombre_opcion">Nombre del Candidato / Opción *</label>
-                    <input type="text" id="nombre_opcion" name="nombre_opcion" required placeholder="Ej: Frandy Jeffry Cepeda">
+                    <input type="text" id="nombre_opcion" name="nombre_opcion" required placeholder="Ej: Candidato A">
                 </div>
                 
                 <button type="submit" name="action" value="opcion">Guardar Opción/Candidato</button>
